@@ -1,10 +1,5 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
-#include <ranges>
-#include <algorithm>
-#include <numeric>
-#include <numbers>
-#include <cmath>
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -20,115 +15,64 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
     juce::AudioProcessorValueTreeState::ParameterLayout layout;
 
     {
-        auto p = std::make_unique<juce::AudioParameterInt>(
-            juce::ParameterID("pitch", 0), "pitch",
-            0, 127, 69
+        auto freq = std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{"freq", 1},
+            "freq",
+            50.0f, 500.0f, 110.0f
         );
-        paramListeners_.Add(p, [this](int v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetGlobalPitch(v);
-            resonator_[1].SetGlobalPitch(v);
+        paramListeners_.Add(freq, [this](float v) {
+            ogun_note_.SetFrequency(v);
         });
-        layout.add(std::move(p));
+        layout.add(std::move(freq));
     }
-
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"shift"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterInt>(juce::ParameterID{ name,0 },
-            name,
-            -48, 48, 0);
-        paramListeners_.Add(p, [this, idx = i] (int v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetPitchShift(v, idx);
-            resonator_[1].SetPitchShift(v, idx);
+    {
+        auto harmonic_num = std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID{"harmonic_num", 1},
+            "harmonic_num",
+            ogun::OgunNote::kMinHarmonicNum, ogun::OgunNote::kMaxHarmonicNum, ogun::OgunNote::kDefaultHarmonicNum
+        );
+        paramListeners_.Add(harmonic_num, [this](int fft_n) {
+            ogun_note_.SetHarmonicNum(fft_n);
+            ogun_note_.SetBinChanged();
         });
-        layout.add(std::move(p));
+        layout.add(std::move(harmonic_num));
     }
-
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"detune"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{ name,0 },
-            name,
-            -50 , 50, 0);
-            paramListeners_.Add(p, [this, idx = i] (float v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetDetune(v, idx);
-            resonator_[1].SetDetune(v, idx);
+    {
+        auto phase_seed = std::make_unique<juce::AudioParameterInt>(
+            juce::ParameterID{"phase_seed", 1},
+            "phase_seed",
+            0, 100, 0
+        );
+        paramListeners_.Add(phase_seed, [this](int seed) {
+            ogun_note_.SetPhaseSeed(seed);
+            ogun_note_.SetBinChanged();
         });
-        layout.add(std::move(p));
+        layout.add(std::move(phase_seed));
     }
-    
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"decay"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{name,0},
-            name,
-            1, 10000, 1000);
-        paramListeners_.Add(p, [this, idx = i] (float v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetDecay(v, idx); 
-            resonator_[1].SetDecay(v, idx); 
+    {
+        auto saw_slope = std::make_unique<juce::AudioParameterBool>(
+            juce::ParameterID{"saw_slope", 1},
+            "saw_slope",
+            true
+        );
+        paramListeners_.Add(saw_slope, [this](bool saw) {
+            ogun_note_.SetUseSawSlope(saw);
+            ogun_note_.SetBinChanged();
         });
-        layout.add(std::move(p));
-    }
-    
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"dispersion"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{ name,0 },
-            name,
-            juce::NormalisableRange<float>(0, 1.0f / mana::ThrianAllpass::kMaxNumAPF, 1.0f / mana::ThrianAllpass::kMaxNumAPF / 256.0f), 0
-            );
-            paramListeners_.Add(p, [this, idx = i] (float v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetDispersion(v, idx); 
-            resonator_[1].SetDispersion(v, idx); 
-        });
-        layout.add(std::move(p));
-    }
-    
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"damp"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{ name,0 },
-                                                             name,
-                                                             0 , 138, 110);
-        paramListeners_.Add(p, [this, idx = i] (float v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetDampPitch(v, idx); 
-            resonator_[1].SetDampPitch(v, idx); 
-        });
-        layout.add(std::move(p));
-    }
-
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"out_mix"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterFloat>(juce::ParameterID{ name,0 },
-                                                             name,
-                                                             -60 , 0, -12);
-        paramListeners_.Add(p, [this, idx = i] (float v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetOutputMix(v, idx); 
-            resonator_[1].SetOutputMix(v, idx); 
-        });
-        layout.add(std::move(p));
-    }
-
-    for (int i = 0; i < kNumPaths; ++i) {
-        auto name = juce::String{"sign"} + juce::String{i};
-        auto p = std::make_unique<juce::AudioParameterBool>(juce::ParameterID{ name,0 },
-                                                             name, true);
-        paramListeners_.Add(p, [this, idx = i] (bool v) {
-            const juce::ScopedLock lock{ getCallbackLock() };
-            resonator_[0].SetDecaySign(v, idx); 
-            resonator_[1].SetDecaySign(v, idx); 
-        });
-        layout.add(std::move(p));
+        layout.add(std::move(saw_slope));
     }
 
     value_tree_ = std::make_unique<juce::AudioProcessorValueTreeState>(*this, nullptr, "PARAMETERS", std::move(layout));
+
+    ogun_note_.GetTimbreAmpCurve().AddListener(this);
+    ogun_note_.GetTimbreFormantCurve().AddListener(this);
 }
 
 AudioPluginAudioProcessor::~AudioPluginAudioProcessor()
 {
     value_tree_ = nullptr;
+    ogun_note_.GetTimbreAmpCurve().RemoveListener(this);
+    ogun_note_.GetTimbreFormantCurve().RemoveListener(this);
 }
 
 //==============================================================================
@@ -199,9 +143,9 @@ void AudioPluginAudioProcessor::changeProgramName (int index, const juce::String
 //==============================================================================
 void AudioPluginAudioProcessor::prepareToPlay (double sampleRate, int samplesPerBlock)
 {
-    for (auto& r : resonator_) {
-        r.Init(sampleRate);
-    }
+    float fs = static_cast<float>(sampleRate);
+    ogun_note_.Init(fs);
+
     paramListeners_.CallAll();
 }
 
@@ -245,14 +189,10 @@ void AudioPluginAudioProcessor::processBlock (juce::AudioBuffer<float>& buffer,
     for (auto i = totalNumInputChannels; i < totalNumOutputChannels; ++i)
         buffer.clear (i, 0, buffer.getNumSamples());
     
-    for (auto i = 0; i < totalNumInputChannels; ++i) {
-        auto* channelData = buffer.getWritePointer (i);
-        auto numSamples = buffer.getNumSamples();
-        auto span = std::span(channelData, numSamples);
-        for (auto& sample : span) {
-            sample = resonator_[i].Process(sample);
-        }
-    }
+    std::span left_block { buffer.getWritePointer(0), static_cast<size_t>(buffer.getNumSamples()) };
+    std::span right_block { buffer.getWritePointer(1), static_cast<size_t>(buffer.getNumSamples()) };
+    ogun_note_.Process(left_block);
+    std::copy(left_block.begin(), left_block.end(), right_block.begin());
 }
 
 //==============================================================================
@@ -279,8 +219,6 @@ void AudioPluginAudioProcessor::setStateInformation (const void* data, int sizeI
 
 void AudioPluginAudioProcessor::Panic() {
     const juce::ScopedLock lock{ getCallbackLock() };
-    resonator_[0].Panic();
-    resonator_[1].Panic();
 }
 
 //==============================================================================

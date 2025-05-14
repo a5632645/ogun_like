@@ -1,8 +1,8 @@
 #pragma once
 
 #include "PluginProcessor.h"
-#include "ui/CombPath.hpp"
-#include "ui/LM_slider.h"
+#include <array>
+#include "ui/common_curve_editor.h"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
@@ -16,15 +16,17 @@ public:
     void resized() override;
 
 private:
-    // This reference is provided as a quick way for your editor to
-    // access the processor object that created it.
     AudioPluginAudioProcessor& processorRef;
 
-    std::vector<std::unique_ptr<ui::CombPath>> paths_;
-    juce::TextButton buttonPanic_{ "panic", "panic" };
-    juce::TextButton buttonUnit_{ "unit", "unit" };
-    juce::TextButton buttonHammond_{ "hammond", "hammond" };
-    juce::TextButton buttonHammondSplit_{ "hammond_split", "hammond_split" };
-    LMKnob globalPitch_;
+    juce::Slider freq_slider_;
+    std::unique_ptr<juce::SliderParameterAttachment> freq_attach_;
+    juce::Slider harmonic_num_slider_;
+    std::unique_ptr<juce::SliderParameterAttachment> harmonic_num_attach_;
+    juce::Slider phase_seed_slider_;
+    std::unique_ptr<juce::SliderParameterAttachment> phase_seed_attach_;
+
+    juce::ComboBox curve_selecter_;
+    mana::CommonCurveEditor curve_editor_;
+
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessorEditor)
 };

@@ -5,66 +5,73 @@
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p)
 {
-    auto& apvt = *processorRef.value_tree_;
-    for (int i = 0; i < processorRef.resonator_[0].kNumPath; ++i) {
-        auto& it = paths_.emplace_back(std::make_unique<ui::CombPath>(apvt, i));
-        addAndMakeVisible(*it);
-    }
+    freq_attach_ = std::make_unique<juce::SliderParameterAttachment>(
+        *p.value_tree_->getParameter("freq"),
+        freq_slider_
+    );
+    addAndMakeVisible(freq_slider_);
 
-    buttonPanic_.onClick = [this] {
-        processorRef.Panic();
-    };
-    addAndMakeVisible(buttonPanic_);
+    harmonic_num_attach_ = std::make_unique<juce::SliderParameterAttachment>(
+        *p.value_tree_->getParameter("harmonic_num"),
+        harmonic_num_slider_
+    );
+    addAndMakeVisible(harmonic_num_slider_);
 
-    buttonUnit_.onClick = [this] {
-        const juce::ScopedLock lock{ processorRef.getCallbackLock() };
-        processorRef.resonator_[0].MakeUnit();
-        processorRef.resonator_[1].MakeUnit();
-    };
-    addAndMakeVisible(buttonUnit_);
-
-    buttonHammond_.onClick = [this] {
-        const juce::ScopedLock lock{ processorRef.getCallbackLock() };
-        processorRef.resonator_[0].MakeHammond();
-        processorRef.resonator_[1].MakeHammond();
-    };
-    addAndMakeVisible(buttonHammond_);
-
-    buttonHammondSplit_.onClick = [this] {
-        const juce::ScopedLock lock{ processorRef.getCallbackLock() };
-        processorRef.resonator_[0].MakeHammondSplit();
-        processorRef.resonator_[1].MakeHammondSplit();
-    };
-    addAndMakeVisible(buttonHammondSplit_);
-
-    globalPitch_.setText("pitch");
-    globalPitch_.ParamLink(apvt, "pitch");
-    addAndMakeVisible(globalPitch_);
+    phase_seed_attach_ = std::make_unique<juce::SliderParameterAttachment>(
+        *p.value_tree_->getParameter("phase_seed"),
+        phase_seed_slider_
+    );
+    addAndMakeVisible(phase_seed_slider_);
     
-    setSize (520, 350);
+    curve_selecter_.addItemList({
+        "timbre",
+        "formant"
+    }, 1);
+    curve_selecter_.setSelectedItemIndex(0);
+    curve_selecter_.onChange = [this] {
+        auto idx = curve_selecter_.getSelectedItemIndex();
+        switch (idx) {
+        case 0:
+            curve_editor_.SetCurve(&processorRef.ogun_note_.GetTimbreAmpCurve());
+            break;
+        case 1:
+            curve_editor_.SetCurve(&processorRef.ogun_note_.GetTimbreFormantCurve());
+            break;
+        }
+    };
+    addAndMakeVisible(curve_selecter_);
+
+    addAndMakeVisible(curve_editor_);
+
+    setSize (500, 500);
 }
 
-AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor()
-{
-
+AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
+    freq_attach_ = nullptr;
+    harmonic_num_attach_ = nullptr;
 }
 
 //==============================================================================
-void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g)
-{
-    g.fillAll(juce::Colour{ 25, 25, 25 });
+void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g) {
+    g.fillAll(juce::Colours::grey);
 }
 
-void AudioPluginAudioProcessorEditor::resized()
-{
+void AudioPluginAudioProcessorEditor::resized() {
     auto b = getLocalBounds();
-    globalPitch_.setBounds(b.removeFromTop(80));
-    for (auto& p : paths_) {
-        p->setBounds(b.removeFromTop(60));
+    {
+        auto top = b.removeFromTop(25);
+        freq_slider_.setBounds(top.removeFromLeft(top.getWidth() / 2));
+        harmonic_num_slider_.setBounds(top);
     }
-    b.removeFromTop(10).withHeight(20);
-    buttonPanic_.setBounds(b.removeFromLeft(100));
-    buttonUnit_.setBounds(b.removeFromLeft(100));
-    buttonHammond_.setBounds(b.removeFromLeft(100));
-    buttonHammondSplit_.setBounds(b.removeFromLeft(100));
+    {
+        auto top = b.removeFromTop(25);
+        phase_seed_slider_.setBounds(top.removeFromLeft(top.getWidth() / 2));
+    }
+    {
+        auto top = b.removeFromTop(30);
+        curve_selecter_.setBounds(top);
+    }
+    {
+        curve_editor_.setBounds(b);
+    }
 }

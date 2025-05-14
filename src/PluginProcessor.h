@@ -1,10 +1,10 @@
 #pragma once
 
 #include <juce_audio_processors/juce_audio_processors.h>
-#include "dsp/Resonator.hpp"
+#include "dsp/ogun_note.hpp"
 
 //==============================================================================
-class AudioPluginAudioProcessor final : public juce::AudioProcessor
+class AudioPluginAudioProcessor final : public juce::AudioProcessor, public mana::CurveV2::Listener
 {
 public:
     //==============================================================================
@@ -44,7 +44,6 @@ public:
     void setStateInformation (const void* data, int sizeInBytes) override;
 
     void Panic();
-    static constexpr int kNumPaths = mana::MixMatrix::kSize;
     struct {
         struct FloatStore : public juce::AudioProcessorParameter::Listener {
             std::function<void(float)> func;
@@ -99,10 +98,25 @@ public:
             listeners.emplace_back(std::make_unique<IntStore>(func, p.get()));
         }
     } paramListeners_;
-
-
     std::unique_ptr<juce::AudioProcessorValueTreeState> value_tree_;
-    mana::Resonator resonator_[2];
+
+    ogun::OgunNote ogun_note_;
+
+    void OnAddPoint(mana::CurveV2* generator, mana::CurveV2::Point p, int before_idx) override {
+        ogun_note_.SetBinChanged();
+    }
+    void OnRemovePoint(mana::CurveV2* generator, int remove_idx) override {
+        ogun_note_.SetBinChanged();
+    }
+    void OnPointXyChanged(mana::CurveV2* generator, int changed_idx) override {
+        ogun_note_.SetBinChanged();
+    }
+    void OnPointPowerChanged(mana::CurveV2* generator, int changed_idx) override {
+        ogun_note_.SetBinChanged();
+    }
+    void OnReload(mana::CurveV2* generator) override {
+        ogun_note_.SetBinChanged();
+    }
 private:
     //==============================================================================
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (AudioPluginAudioProcessor)
