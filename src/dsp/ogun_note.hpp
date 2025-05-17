@@ -2,10 +2,11 @@
 #include <span>
 #include <array>
 #include <atomic>
-#include "AudioFFT/AudioFFT.h"
-#include "curve_v2.h"
 #include <random>
 #include <numbers>
+#include "curve_v2.h"
+#include "AudioFFT/AudioFFT.h"
+#include "quad_osc.hpp"
 
 namespace ogun {
 
@@ -31,8 +32,14 @@ public:
     mana::CurveV2& GetTimbreAmpCurve() { return timbre_amp_; }
     mana::CurveV2& GetTimbreFormantCurve() { return timbre_formant_; }
 private:
+    using DynamicWaveTable = std::array<float, kWaveTableSize + 1>;
+
     void UpdateWaveTable();
+    void ProcessAudioSpan(std::span<float> block);
     int CalcAntiAlasingBins();
+    void ProcessAudioSpanWithCrossFading(std::span<float> block);
+    DynamicWaveTable& GetMainWaveTable() const { return *table_a_ptr_; }
+    float ReadWaveTable(DynamicWaveTable& table, float index) const;
 
     float sample_rate_{};
     float phase_{};
@@ -41,7 +48,11 @@ private:
     float freq_{};
     
     audiofft::AudioFFT fft_;
-    std::array<float, kWaveTableSize + 1> old_table_{};
+    DynamicWaveTable table1_{};
+    DynamicWaveTable table2_{};
+    DynamicWaveTable* table_a_ptr_{};
+    DynamicWaveTable* table_b_ptr_{};
+
     std::atomic<bool> is_bin_changed_{};
     std::array<float, kNumAdjustedBins> bin_phases_{};
 
@@ -55,6 +66,17 @@ private:
     bool use_saw_slope_;
     mana::CurveV2 timbre_amp_;
     mana::CurveV2 timbre_formant_;
+    mana::CurveV2 decay_map_;
+
+    // 定时改变波表
+    int update_counter_{};
+    int num_samples_per_update_frame_{};
+    float update_rate_{};
+
+    // 波表改变，交叉淡化
+    int num_samples_still_cross_fading_{};
+    int num_total_cross_fading_samples_{};
+    int cross_fading_counter_{};
 };
 
 }
