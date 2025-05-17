@@ -62,6 +62,17 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         });
         layout.add(std::move(saw_slope));
     }
+        {
+        auto saw_slope = std::make_unique<juce::AudioParameterBool>(
+            juce::ParameterID{ogun::id::kPhaseMoveMulFreq, 1},
+            "pm_mulfreq",
+            true
+        );
+        paramListeners_.Add(saw_slope, [this](bool saw) {
+            ogun_note_.SetPhaseMoveMulFreq(saw);
+        });
+        layout.add(std::move(saw_slope));
+    }
     {
         auto volume = std::make_unique<juce::AudioParameterFloat>(
             juce::ParameterID{ogun::id::kVolume, 1},
@@ -72,6 +83,17 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
             ogun_note_.SetVolume(vol);
         });
         layout.add(std::move(volume));
+    }
+    {
+        auto phase_move = std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ogun::id::kPhaseMove, 1},
+            "phase_move",
+            0.0f, 5000.0f, 0.0f
+        );
+        paramListeners_.Add(phase_move, [this](float move) {
+            ogun_note_.SetPhaseMove(move);
+        });
+        layout.add(std::move(phase_move));
     }
 
     value_tree_ = std::make_unique<juce::AudioProcessorValueTreeState>(*this, nullptr, "PARAMETERS", std::move(layout));

@@ -24,7 +24,9 @@ private:
     ui::VerticalSlider harmonic_num_slider_;
     ui::VerticalSlider phase_seed_slider_;
     ui::VerticalSlider volume_slider_;
+    ui::VerticalSlider phase_move_slider_;
     ui::ToggleButton saw_slope_toggle_;
+    ui::ToggleButton phase_move_mul_freq_toggle_;
 
     juce::ComboBox curve_selecter_;
     mana::CommonCurveEditor curve_editor_;

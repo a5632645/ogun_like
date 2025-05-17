@@ -24,13 +24,22 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
     volume_slider_.SetShortName("VOL");
     addAndMakeVisible(volume_slider_);
 
+    phase_move_slider_.BindParameter(apvts, ogun::id::kPhaseMove);
+    phase_move_slider_.SetShortName("PHMOVE");
+    addAndMakeVisible(phase_move_slider_);
+
     saw_slope_toggle_.BindParameter(apvts, "saw_slope");
     saw_slope_toggle_.setButtonText("saw");
     addAndMakeVisible(saw_slope_toggle_);
+
+    phase_move_mul_freq_toggle_.BindParameter(apvts, ogun::id::kPhaseMoveMulFreq);
+    phase_move_mul_freq_toggle_.setButtonText("pm.mulfreq");
+    addAndMakeVisible(phase_move_mul_freq_toggle_);
     
     curve_selecter_.addItemList({
         "timbre",
-        "formant"
+        "formant",
+        "phase_move",
     }, 1);
     curve_selecter_.setSelectedItemIndex(0);
     curve_selecter_.onChange = [this] {
@@ -41,6 +50,9 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
             break;
         case 1:
             curve_editor_.SetCurve(&processorRef.ogun_note_.GetTimbreFormantCurve());
+            break;
+        case 2:
+            curve_editor_.SetCurve(&processorRef.ogun_note_.GetPhaseMoveCurve());
             break;
         }
     };
@@ -67,9 +79,11 @@ void AudioPluginAudioProcessorEditor::resized() {
         harmonic_num_slider_.setBounds(top.removeFromLeft(50));
         phase_seed_slider_.setBounds(top.removeFromLeft(50));
         volume_slider_.setBounds(top.removeFromLeft(50));
+        phase_move_slider_.setBounds(top.removeFromLeft(50));
         {
             auto tbox = top.removeFromLeft(80);
-            saw_slope_toggle_.setBounds(tbox.removeFromTop(50));
+            saw_slope_toggle_.setBounds(tbox.removeFromTop(20));
+            phase_move_mul_freq_toggle_.setBounds(tbox.removeFromTop(20));
         }
     }
     {

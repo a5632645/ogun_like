@@ -29,9 +29,12 @@ public:
     void SetPhaseSeed(int seed);
     void SetUseSawSlope(bool use_saw_slope);
     void SetVolume(float db_vol);
+    void SetPhaseMove(float move) { phase_move_ = move; }
+    void SetPhaseMoveMulFreq(bool mul) { phase_move_mul_freq_ = mul; }
     void SetBinChanged() { is_bin_changed_.store(true); }
     mana::CurveV2& GetTimbreAmpCurve() { return timbre_amp_; }
     mana::CurveV2& GetTimbreFormantCurve() { return timbre_formant_; }
+    mana::CurveV2& GetPhaseMoveCurve() { return phase_move_map_; }
 private:
     using DynamicWaveTable = std::array<float, kWaveTableSize + 1>;
 
@@ -49,6 +52,8 @@ private:
     float phase_inc_mul_{};
     float freq_{};
     float volume_{};
+    float phase_move_{};
+    bool phase_move_mul_freq_{};
     
     audiofft::AudioFFT fft_;
     DynamicWaveTable table1_{};
@@ -70,6 +75,7 @@ private:
     mana::CurveV2 timbre_amp_;
     mana::CurveV2 timbre_formant_;
     mana::CurveV2 decay_map_;
+    mana::CurveV2 phase_move_map_;
 
     // 定时改变波表
     int update_counter_{};

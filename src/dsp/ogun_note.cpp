@@ -1,10 +1,18 @@
 #include "ogun_note.hpp"
 #include <cmath>
+#include <numbers>
+
+static float PhaseWarp(float x) {
+    x /= 2.0 * std::numbers::pi_v<float>;
+    x -= std::round(x);
+    return x * 2.0 * std::numbers::pi_v<float>;
+}
 
 namespace ogun {
 OgunNote::OgunNote()
     : timbre_amp_(kNumAdjustedBins, mana::CurveV2::CurveInitEnum::kFull)
     , timbre_formant_(kNumAdjustedBins, mana::CurveV2::CurveInitEnum::kFull)
+    , phase_move_map_(kNumAdjustedBins, mana::CurveV2::CurveInitEnum::kNull)
 {
     table_a_ptr_ = &table1_;
     table_b_ptr_ = &table2_;
@@ -14,7 +22,7 @@ void OgunNote::Init(float fs) {
     sample_rate_ = fs;
     fft_.init(kFFTSize);
 
-    update_rate_ = 50.0f;
+    update_rate_ = 1000.0f;
     num_samples_per_update_frame_ = static_cast<int>(std::round(fs / update_rate_));
     update_rate_ = fs / static_cast<float>(num_samples_per_update_frame_);
     update_counter_ = 0;
@@ -57,6 +65,7 @@ void OgunNote::SetHarmonicNum(int fft_n) {
     num_bins_ = block_size_ / 2;
     timbre_amp_.SetCurrLineResolution(num_bins_);
     timbre_formant_.SetCurrLineResolution(num_bins_);
+    phase_move_map_.SetCurrLineResolution(num_bins_);
     if (fft_n > kDefaultHarmonicNum) {
         // 降低音高获得更多谐波
         // 如果要制作pad，降低音高并将谐波级数设定为 N * (fft_n - kDefaultHarmonicNum + 1)
@@ -99,6 +108,20 @@ void OgunNote::UpdateWaveTable() {
     float gain_down = kFFTSize / 4 / std::sqrt(static_cast<float>(num_bins_));
     std::array<float, kNumFFTBins> real{};
     std::array<float, kNumFFTBins> imag{};
+
+    float e = freq_ / sample_rate_ * std::numbers::pi_v<float>;
+    if (phase_move_mul_freq_) {
+        for (size_t i = 0; i < num_bins; ++i) {
+            bin_phases_[i] += phase_move_map_.Get(static_cast<int>(i)) * phase_move_ * e;
+            bin_phases_[i] = PhaseWarp(bin_phases_[i]);
+        }
+    }
+    else {
+        for (size_t i = 0; i < num_bins; ++i) {
+            bin_phases_[i] += phase_move_map_.Get(static_cast<int>(i)) * phase_move_ * (i + 1.0f) * e;
+            bin_phases_[i] = PhaseWarp(bin_phases_[i]);
+        }
+    }
 
     if (!use_saw_slope_) {
         for (size_t i = 0; i < num_bins; ++i) {
