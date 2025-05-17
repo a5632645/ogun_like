@@ -3,6 +3,8 @@
 #include "PluginProcessor.h"
 #include <array>
 #include "ui/common_curve_editor.h"
+#include "ui/vertical_slider.hpp"
+#include "ui/toggle_button.hpp"
 
 //==============================================================================
 class AudioPluginAudioProcessorEditor final : public juce::AudioProcessorEditor
@@ -18,12 +20,10 @@ public:
 private:
     AudioPluginAudioProcessor& processorRef;
 
-    juce::Slider freq_slider_;
-    std::unique_ptr<juce::SliderParameterAttachment> freq_attach_;
-    juce::Slider harmonic_num_slider_;
-    std::unique_ptr<juce::SliderParameterAttachment> harmonic_num_attach_;
-    juce::Slider phase_seed_slider_;
-    std::unique_ptr<juce::SliderParameterAttachment> phase_seed_attach_;
+    ui::VerticalSlider freq_slider_;
+    ui::VerticalSlider harmonic_num_slider_;
+    ui::VerticalSlider phase_seed_slider_;
+    ui::ToggleButton saw_slope_toggle_;
 
     juce::ComboBox curve_selecter_;
     mana::CommonCurveEditor curve_editor_;

@@ -5,23 +5,23 @@
 AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAudioProcessor& p)
     : AudioProcessorEditor (&p), processorRef (p)
 {
-    freq_attach_ = std::make_unique<juce::SliderParameterAttachment>(
-        *p.value_tree_->getParameter("freq"),
-        freq_slider_
-    );
+    auto& apvts = *p.value_tree_;
+
+    freq_slider_.BindParameter(apvts, "freq");
+    freq_slider_.SetShortName("FREQ");
     addAndMakeVisible(freq_slider_);
 
-    harmonic_num_attach_ = std::make_unique<juce::SliderParameterAttachment>(
-        *p.value_tree_->getParameter("harmonic_num"),
-        harmonic_num_slider_
-    );
+    harmonic_num_slider_.BindParameter(apvts, "harmonic_num");
+    harmonic_num_slider_.SetShortName("HNUM");
     addAndMakeVisible(harmonic_num_slider_);
 
-    phase_seed_attach_ = std::make_unique<juce::SliderParameterAttachment>(
-        *p.value_tree_->getParameter("phase_seed"),
-        phase_seed_slider_
-    );
+    phase_seed_slider_.BindParameter(apvts, "phase_seed");
+    phase_seed_slider_.SetShortName("PHASE");
     addAndMakeVisible(phase_seed_slider_);
+
+    saw_slope_toggle_.BindParameter(apvts, "saw_slope");
+    saw_slope_toggle_.setButtonText("saw");
+    addAndMakeVisible(saw_slope_toggle_);
     
     curve_selecter_.addItemList({
         "timbre",
@@ -47,8 +47,6 @@ AudioPluginAudioProcessorEditor::AudioPluginAudioProcessorEditor (AudioPluginAud
 }
 
 AudioPluginAudioProcessorEditor::~AudioPluginAudioProcessorEditor() {
-    freq_attach_ = nullptr;
-    harmonic_num_attach_ = nullptr;
 }
 
 //==============================================================================
@@ -59,13 +57,14 @@ void AudioPluginAudioProcessorEditor::paint (juce::Graphics& g) {
 void AudioPluginAudioProcessorEditor::resized() {
     auto b = getLocalBounds();
     {
-        auto top = b.removeFromTop(25);
-        freq_slider_.setBounds(top.removeFromLeft(top.getWidth() / 2));
-        harmonic_num_slider_.setBounds(top);
-    }
-    {
-        auto top = b.removeFromTop(25);
-        phase_seed_slider_.setBounds(top.removeFromLeft(top.getWidth() / 2));
+        auto top = b.removeFromTop(100);
+        freq_slider_.setBounds(top.removeFromLeft(50));
+        harmonic_num_slider_.setBounds(top.removeFromLeft(50));
+        phase_seed_slider_.setBounds(top.removeFromLeft(50));
+        {
+            auto tbox = top.removeFromLeft(80);
+            saw_slope_toggle_.setBounds(tbox.removeFromTop(50));
+        }
     }
     {
         auto top = b.removeFromTop(30);
