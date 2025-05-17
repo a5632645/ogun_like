@@ -28,6 +28,7 @@ public:
     void SetHarmonicNum(int fft_n);
     void SetPhaseSeed(int seed);
     void SetUseSawSlope(bool use_saw_slope);
+    void SetVolume(float db_vol);
     void SetBinChanged() { is_bin_changed_.store(true); }
     mana::CurveV2& GetTimbreAmpCurve() { return timbre_amp_; }
     mana::CurveV2& GetTimbreFormantCurve() { return timbre_formant_; }
@@ -40,12 +41,14 @@ private:
     void ProcessAudioSpanWithCrossFading(std::span<float> block);
     DynamicWaveTable& GetMainWaveTable() const { return *table_a_ptr_; }
     float ReadWaveTable(DynamicWaveTable& table, float index) const;
+    void FillAudioSpanFromWaveTable(float* ptr, int size);
 
     float sample_rate_{};
     float phase_{};
     float phase_inc_{};
     float phase_inc_mul_{};
     float freq_{};
+    float volume_{};
     
     audiofft::AudioFFT fft_;
     DynamicWaveTable table1_{};

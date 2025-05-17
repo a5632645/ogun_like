@@ -23,6 +23,7 @@ private:
     ui::VerticalSlider freq_slider_;
     ui::VerticalSlider harmonic_num_slider_;
     ui::VerticalSlider phase_seed_slider_;
+    ui::VerticalSlider volume_slider_;
     ui::ToggleButton saw_slope_toggle_;
 
     juce::ComboBox curve_selecter_;

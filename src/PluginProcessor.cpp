@@ -1,5 +1,6 @@
 #include "PluginProcessor.h"
 #include "PluginEditor.h"
+#include "param_ids.hpp"
 
 //==============================================================================
 AudioPluginAudioProcessor::AudioPluginAudioProcessor()
@@ -60,6 +61,17 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
             ogun_note_.SetBinChanged();
         });
         layout.add(std::move(saw_slope));
+    }
+    {
+        auto volume = std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ogun::id::kVolume, 1},
+            "volume",
+            -20.0f, 40.0f, 0.0f
+        );
+        paramListeners_.Add(volume, [this](float vol) {
+            ogun_note_.SetVolume(vol);
+        });
+        layout.add(std::move(volume));
     }
 
     value_tree_ = std::make_unique<juce::AudioProcessorValueTreeState>(*this, nullptr, "PARAMETERS", std::move(layout));

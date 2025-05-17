@@ -84,8 +84,11 @@ void OgunNote::SetUseSawSlope(bool use_saw_slope) {
     use_saw_slope_ = use_saw_slope;
 }
 
+void OgunNote::SetVolume(float db_vol) {
+    volume_ = std::pow(10.0f, db_vol / 20.0f);
+}
+
 void OgunNote::UpdateWaveTable() {
-    // cross_fading_osc_.Reset();
     cross_fading_counter_ = 0;
     num_samples_still_cross_fading_ = num_total_cross_fading_samples_;
 
@@ -134,14 +137,7 @@ void OgunNote::ProcessAudioSpan(std::span<float> block) {
         ProcessAudioSpanWithCrossFading(block);
     }
     else {
-        float inc = phase_inc_ * phase_inc_mul_;
-        for (auto& s : block) {
-            phase_ += inc;
-            if (phase_ >= static_cast<float>(kWaveTableSize)) {
-                phase_ -= kWaveTableSize;
-            }
-            s = ReadWaveTable(GetMainWaveTable(), phase_);
-        }
+        FillAudioSpanFromWaveTable(block.data(), static_cast<int>(block.size()));
     }
 }
 
@@ -167,28 +163,17 @@ void OgunNote::ProcessAudioSpanWithCrossFading(std::span<float> block) {
 
         float a = ReadWaveTable(*table_a_ptr_, phase_);
         float b = ReadWaveTable(*table_b_ptr_, phase_);
-        // cross_fading_osc_.Tick();
-        // float amul = cross_fading_osc_.GetSine();
-        // float bmul = cross_fading_osc_.GetCosine();
         float p = cross_fading_counter_ * inv;
         ++cross_fading_counter_;
         float v = std::lerp(a, b, p);
-        block[i] = v;
+        block[i] = v * volume_;
     }
 
     if (num_samples_still_cross_fading_ == 0) {
         std::swap(table_a_ptr_, table_b_ptr_);
     }
 
-    auto& main_wavetable = GetMainWaveTable();
-    auto ptr = block.data() + process_size;
-    for (int i = 0; i < non_cross_size; ++i) {
-        phase_ += inc;
-        if (phase_ >= static_cast<float>(kWaveTableSize)) {
-            phase_ -= kWaveTableSize;
-        }
-        ptr[i] = ReadWaveTable(main_wavetable, phase_);
-    }
+    FillAudioSpanFromWaveTable(block.data() + process_size, non_cross_size);
 }
 
 float OgunNote::ReadWaveTable(DynamicWaveTable &table, float index) const {
@@ -197,5 +182,17 @@ float OgunNote::ReadWaveTable(DynamicWaveTable &table, float index) const {
     float frac = index - idx;
     float s = std::lerp(table[idx], table[next], frac);
     return s;
+}
+
+void OgunNote::FillAudioSpanFromWaveTable(float* ptr, int size) {
+    auto& main_wavetable = GetMainWaveTable();
+    float inc = phase_inc_ * phase_inc_mul_;
+    for (int i = 0; i < size; ++i) {
+        phase_ += inc;
+        if (phase_ >= static_cast<float>(kWaveTableSize)) {
+            phase_ -= kWaveTableSize;
+        }
+        ptr[i] = ReadWaveTable(main_wavetable, phase_) * volume_;
+    }
 }
 }
