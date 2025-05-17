@@ -18,6 +18,11 @@ void OgunNote::Init(float fs) {
     num_samples_per_update_frame_ = static_cast<int>(std::round(fs / update_rate_));
     update_rate_ = fs / static_cast<float>(num_samples_per_update_frame_);
     update_counter_ = 0;
+
+    num_total_cross_fading_samples_ = static_cast<int>(fs * 10.0f / 1000.0f);
+    if (num_total_cross_fading_samples_ > num_samples_per_update_frame_ / 2) {
+        num_total_cross_fading_samples_ = num_samples_per_update_frame_ / 2;
+    }
 }
 
 void OgunNote::Process(std::span<float> block) {
