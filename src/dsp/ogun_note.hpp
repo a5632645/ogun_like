@@ -29,12 +29,16 @@ public:
     void SetPhaseSeed(int seed);
     void SetUseSawSlope(bool use_saw_slope);
     void SetVolume(float db_vol);
+    void SetFullness(float fullness) { fullness_ = fullness; }
+    void SetPreDecay(float predecay) { predecay_ = predecay; }
     void SetPhaseMove(float move) { phase_move_ = move; }
     void SetPhaseMoveMulFreq(bool mul) { phase_move_mul_freq_ = mul; }
-    void SetBinChanged() { is_bin_changed_.store(true); }
     mana::CurveV2& GetTimbreAmpCurve() { return timbre_amp_; }
     mana::CurveV2& GetTimbreFormantCurve() { return timbre_formant_; }
     mana::CurveV2& GetPhaseMoveCurve() { return phase_move_map_; }
+    mana::CurveV2& GetTimerDecayCurve() { return decay_map_; }
+
+    void NoteOn(float pitch);
 private:
     using DynamicWaveTable = std::array<float, kWaveTableSize + 1>;
 
@@ -54,19 +58,24 @@ private:
     float volume_{};
     float phase_move_{};
     bool phase_move_mul_freq_{};
+    float fullness_{}; // 将decay从随机值插值到decay_map
+    float predecay_{}; // 从插值的decay_map中直接关闭低于该值的amp
     
     audiofft::AudioFFT fft_;
     DynamicWaveTable table1_{};
     DynamicWaveTable table2_{};
     DynamicWaveTable* table_a_ptr_{};
     DynamicWaveTable* table_b_ptr_{};
-
-    std::atomic<bool> is_bin_changed_{};
     std::array<float, kNumAdjustedBins> bin_phases_{};
+    std::array<float, kNumAdjustedBins> bin_amps_{};
 
     int phase_seed_{};
     std::default_random_engine random_engine_;
     std::uniform_real_distribution<float> random_distribution_{0.0f, std::numbers::pi_v<float> * 2};
+    std::uniform_real_distribution<float> random_gain_distribution_{0.0f, 1.0f};
+
+    int randomed_decay_seed_{};
+    std::array<float, kNumAdjustedBins> randomed_decay_map_;
 
     int num_bins_{};
     int fft_n_{};

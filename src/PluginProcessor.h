@@ -103,19 +103,14 @@ public:
     ogun::OgunNote ogun_note_;
 
     void OnAddPoint(mana::CurveV2* generator, mana::CurveV2::Point p, int before_idx) override {
-        ogun_note_.SetBinChanged();
     }
     void OnRemovePoint(mana::CurveV2* generator, int remove_idx) override {
-        ogun_note_.SetBinChanged();
     }
     void OnPointXyChanged(mana::CurveV2* generator, int changed_idx) override {
-        ogun_note_.SetBinChanged();
     }
     void OnPointPowerChanged(mana::CurveV2* generator, int changed_idx) override {
-        ogun_note_.SetBinChanged();
     }
     void OnReload(mana::CurveV2* generator) override {
-        ogun_note_.SetBinChanged();
     }
 private:
     //==============================================================================

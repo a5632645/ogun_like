@@ -34,7 +34,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         );
         paramListeners_.Add(harmonic_num, [this](int fft_n) {
             ogun_note_.SetHarmonicNum(fft_n);
-            ogun_note_.SetBinChanged();
         });
         layout.add(std::move(harmonic_num));
     }
@@ -46,7 +45,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         );
         paramListeners_.Add(phase_seed, [this](int seed) {
             ogun_note_.SetPhaseSeed(seed);
-            ogun_note_.SetBinChanged();
         });
         layout.add(std::move(phase_seed));
     }
@@ -58,7 +56,6 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
         );
         paramListeners_.Add(saw_slope, [this](bool saw) {
             ogun_note_.SetUseSawSlope(saw);
-            ogun_note_.SetBinChanged();
         });
         layout.add(std::move(saw_slope));
     }
@@ -94,6 +91,28 @@ AudioPluginAudioProcessor::AudioPluginAudioProcessor()
             ogun_note_.SetPhaseMove(move);
         });
         layout.add(std::move(phase_move));
+    }
+    {
+        auto fullness = std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ogun::id::kFullness, 1},
+            "fullness",
+            -1.0f, 1.0f, 1.0f
+        );
+        paramListeners_.Add(fullness, [this](float full) {
+            ogun_note_.SetFullness(full);
+        });
+        layout.add(std::move(fullness));
+    }
+    {
+        auto predecay = std::make_unique<juce::AudioParameterFloat>(
+            juce::ParameterID{ogun::id::kPreDecay, 1},
+            "predecay",
+            0.0f, 1.0f, 0.0f
+        );
+        paramListeners_.Add(predecay, [this](float predecay) {
+            ogun_note_.SetPreDecay(predecay);
+        });
+        layout.add(std::move(predecay));
     }
 
     value_tree_ = std::make_unique<juce::AudioProcessorValueTreeState>(*this, nullptr, "PARAMETERS", std::move(layout));
